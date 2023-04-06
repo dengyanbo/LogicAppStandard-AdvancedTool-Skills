@@ -2,7 +2,7 @@
   "profiles": {
     "LogicAppAdvancedTool": {
       "commandName": "Project",
-      "commandLineArgs": "IngestWorkflow -la DracLogicApp -wf Test2"
+      "commandLineArgs": "SyncToLocal -sn draclogicapp8374 -cs DefaultEndpointsProtocol=https;AccountName=logicappstandardaca4;AccountKey=***REMOVED***;EndpointSuffix=core.windows.net -path D:\\test"
     }
   }
 }
