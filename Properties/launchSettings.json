@@ -1,7 +1,8 @@
 {
   "profiles": {
     "LogicAppAdvancedTool": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "SyncToLocal -sn draclogicapp8374 -cs DefaultEndpointsProtocol=https;AccountName=logicappstandardaca4;AccountKey=***REMOVED***;EndpointSuffix=core.windows.net -path D:\\\\test"
     }
   }
 }
