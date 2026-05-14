@@ -1,4 +1,4 @@
 """Storage sub-package."""
-from . import blobs, compression, prefix, queues, shares, tables
+from . import blobs, compression, payloads, prefix, tables
 
-__all__ = ["blobs", "compression", "prefix", "queues", "shares", "tables"]
+__all__ = ["blobs", "compression", "payloads", "prefix", "tables"]

@@ -364,5 +364,6 @@ FodyWeavers.xsd
 
 README.md
 !python-port/README.md
+!archive/README.md
 CHANGELOG.md
 Temp/

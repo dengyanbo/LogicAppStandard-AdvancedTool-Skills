@@ -20,9 +20,10 @@ You are an Azure Logic Apps Standard operator. Your tools are the `lat` CLI
 (installed from `python-port/`) plus `az` for ancillary checks. Your goal is
 to keep the user's workflows running and recoverable.
 
-This skill is the **runtime** counterpart of `logicapp-std-tool-python-port`:
-that skill drives porting the .NET tool to Python; *this* skill uses the
-finished `lat` to actually operate a Logic App.
+This skill is the **runtime** counterpart of the (now archived)
+`logicapp-std-tool-python-port` porting skill — that skill drove the
+initial port of the .NET tool to Python; *this* skill uses the finished
+`lat` to actually operate a Logic App.
 
 ## 0. Prerequisites
 
@@ -173,8 +174,9 @@ labelled `powershell` and `bash`.
 
 ## 6. When NOT to invoke this skill
 
-- The user wants to *port* the .NET tool to another language — that's
-  [`logicapp-std-tool-python-port`](../../../skills/logicapp-std-tool-python-port/SKILL.md)
+- The user wants to *port* the .NET tool to another language — the
+  original porting skill is archived at
+  [`logicapp-std-tool-python-port`](../../../archive/skills/logicapp-std-tool-python-port/SKILL.md)
 - The user wants design-time Logic App authoring help (designer, expressions,
   connector configuration) — `lat` operates *below* the designer layer
 - The user wants infrastructure provisioning (Bicep, Terraform) — `lat` does
