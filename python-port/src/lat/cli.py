@@ -77,6 +77,7 @@ from .commands.restore_workflow_with_version import (
 )
 from .commands.ingest_workflow import register as _reg_ingest_workflow
 from .commands.cleanup import register as _reg_cleanup
+from .commands.merge_run_history import register as _reg_merge_run_history
 
 _reg_tools(tools_app)
 _reg_tools_env(tools_app)
@@ -106,6 +107,7 @@ _reg_convert_to_stateful(workflow_app)
 _reg_restore_workflow_with_version(workflow_app)
 _reg_ingest_workflow(workflow_app)
 _reg_cleanup(cleanup_app)
+_reg_merge_run_history(workflow_app)
 
 
 if __name__ == "__main__":
