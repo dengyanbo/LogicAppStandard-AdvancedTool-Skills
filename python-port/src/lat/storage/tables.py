@@ -230,6 +230,42 @@ def list_versions_by_id(
     return rows
 
 
+def list_flow_ids_by_name(workflow_name: str) -> list[str]:
+    """Distinct FlowIds for a given workflow name.
+
+    Mirrors Shared/Common.cs ListFlowIDsByName helper used by CleanUp commands.
+    """
+    rows = query_main_table(
+        f"FlowName eq '{workflow_name}'", select=["FlowId"]
+    )
+    out: list[str] = []
+    seen: set[str] = set()
+    for r in rows:
+        fid = r.get("FlowId")
+        if isinstance(fid, str) and fid and fid not in seen:
+            seen.add(fid)
+            out.append(fid)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Service-level table helpers (used by CleanUpTables)
+# ---------------------------------------------------------------------------
+
+
+def list_tables_with_prefix(prefix: str) -> list[str]:
+    """Return every table whose name starts with `prefix`."""
+    return [
+        t.name
+        for t in _service_client().query_tables(f"TableName ge '{prefix}'")
+        if t.name.startswith(prefix)
+    ]
+
+
+def delete_table(name: str) -> None:
+    _service_client().delete_table(name)
+
+
 # ---------------------------------------------------------------------------
 # Definition save helper (mirrors Shared/Common.SaveDefinition)
 # ---------------------------------------------------------------------------

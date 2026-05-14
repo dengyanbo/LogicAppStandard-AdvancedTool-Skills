@@ -329,6 +329,44 @@ class FakeTableServiceClient:
                 continue
         return items
 
+    def delete_table(self, name: str) -> None:
+        self._tables.pop(name, None)
+
+
+# ---------------------------------------------------------------------------
+# Fake BlobServiceClient (only the bits CleanUpContainers / Snapshot need)
+# ---------------------------------------------------------------------------
+
+
+class _ContainerItem:
+    """Stand-in for azure.storage.blob.ContainerItem (only `name` is read)."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
+class FakeBlobServiceClient:
+    """In-memory replacement for azure.storage.blob.BlobServiceClient."""
+
+    def __init__(self) -> None:
+        self._containers: set[str] = set()
+        self.delete_calls: list[str] = []
+
+    def add_container(self, name: str) -> None:
+        self._containers.add(name)
+
+    @property
+    def containers(self) -> set[str]:
+        return set(self._containers)
+
+    def list_containers(self, name_starts_with: str | None = None) -> list[_ContainerItem]:
+        prefix = name_starts_with or ""
+        return [_ContainerItem(c) for c in sorted(self._containers) if c.startswith(prefix)]
+
+    def delete_container(self, name: str) -> None:
+        self.delete_calls.append(name)
+        self._containers.discard(name)
+
 
 # ---------------------------------------------------------------------------
 # Pytest fixtures
@@ -350,6 +388,16 @@ def fake_tables(monkeypatch: pytest.MonkeyPatch) -> FakeTableServiceClient:
     monkeypatch.setattr(
         _tables, "table_client", lambda name: svc.get_table_client(name)
     )
+    return svc
+
+
+@pytest.fixture()
+def fake_blobs(monkeypatch: pytest.MonkeyPatch) -> FakeBlobServiceClient:
+    """Patch lat.storage.blobs.service_client() to use an in-memory backend."""
+    svc = FakeBlobServiceClient()
+    from lat.storage import blobs as _blobs
+
+    monkeypatch.setattr(_blobs, "service_client", lambda: svc)
     return svc
 
 

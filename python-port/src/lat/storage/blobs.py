@@ -1,10 +1,12 @@
-"""Blob helpers used by ContentDecoder and Snapshot commands.
+"""Blob helpers used by ContentDecoder, Snapshot, and CleanUp commands.
 
 See Shared/Common.cs:149-174 for GetBlobContent (size-capped download +
 decompression) which the .NET tool uses to fetch large run-history
 payloads stored as blobs.
 """
 from __future__ import annotations
+
+from collections.abc import Iterable
 
 from azure.storage.blob import BlobClient, BlobServiceClient
 
@@ -17,6 +19,17 @@ def service_client() -> BlobServiceClient:
     if not conn:
         raise RuntimeError("AzureWebJobsStorage is not set")
     return BlobServiceClient.from_connection_string(conn)
+
+
+def list_containers_with_prefix(prefix: str) -> list[str]:
+    """Return every container whose name starts with `prefix`."""
+    return [
+        c.name for c in service_client().list_containers(name_starts_with=prefix)
+    ]
+
+
+def delete_container(name: str) -> None:
+    service_client().delete_container(name)
 
 
 def get_blob_content(blob_uri: str, max_size_bytes: int | None = None) -> str:
