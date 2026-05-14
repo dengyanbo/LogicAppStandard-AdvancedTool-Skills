@@ -5,27 +5,30 @@ files under wwwroot, collects connection references (recursing into control
 actions: If/Switch/Until/Scope/Foreach), then diffs against the connections
 declared in `<root>/connections.json`.
 
-The .NET tool follows the report with an interactive cleanup phase that
-mutates `connections.json` and pushes updated app settings to ARM. The
-Python port currently only implements the read-only scan; the cleanup
-will be added when `lat.arm` is fleshed out. Pass `--apply` to get a
-clear "not yet implemented" error rather than silent skipping.
+With `--apply`: also removes orphan connections from connections.json and
+deletes any `@appsetting('NAME')` references they used from the site's
+app settings (pushed via ARM). The Python port now matches the full .NET
+behavior.
 """
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from .. import arm
 from ..settings import settings
 
 console = Console()
 
 # Control-flow action types that wrap nested actions (mirrors Enum.ActionType + ScanConnections.cs).
 _CONTROL_ACTIONS = {"If", "Switch", "Until", "Scope", "Foreach"}
+
+_APPSETTING_RE = re.compile(r"@appsetting\('([^']+)'\)")
 
 
 def _collect_connections_from_actions(actions: dict | None) -> set[tuple[str, str]]:
@@ -98,6 +101,39 @@ def collect_declared_connections(connections_json: Path) -> set[tuple[str, str]]
     return declared
 
 
+def _collect_appsetting_refs(parameter_values: object) -> set[str]:
+    """Find every `@appsetting('NAME')` reference inside parameterValues."""
+    found: set[str] = set()
+    if not isinstance(parameter_values, dict):
+        return found
+    for value in parameter_values.values():
+        if isinstance(value, str):
+            found.update(_APPSETTING_RE.findall(value))
+    return found
+
+
+def _apply_cleanup(
+    connections_json: Path, orphans: set[tuple[str, str]]
+) -> set[str]:
+    """Remove orphans from connections.json. Returns app-setting names to delete."""
+    data = json.loads(connections_json.read_text(encoding="utf-8"))
+    api = data.get("managedApiConnections") or {}
+    sp = data.get("serviceProviderConnections") or {}
+    unused_appsettings: set[str] = set()
+
+    for ctype, cname in orphans:
+        if ctype == "ApiConnection" and cname in api:
+            del api[cname]
+        elif ctype == "ServiceProvider" and cname in sp:
+            unused_appsettings.update(_collect_appsetting_refs(sp[cname].get("parameterValues")))
+            del sp[cname]
+
+    data["managedApiConnections"] = api
+    data["serviceProviderConnections"] = sp
+    connections_json.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    return unused_appsettings
+
+
 def scan_connections(
     root: Path = typer.Option(
         None, "--root",
@@ -108,7 +144,12 @@ def scan_connections(
     ),
     apply: bool = typer.Option(
         False, "--apply",
-        help="Remove orphan connections from connections.json and app settings. NOT YET IMPLEMENTED.",
+        help="Remove orphan connections from connections.json and delete the "
+             "associated app settings via ARM (requires MI permissions).",
+    ),
+    yes: bool = typer.Option(
+        False, "--yes", "-y",
+        help="Skip the destructive-cleanup confirmation prompt (only with --apply).",
     ),
 ) -> None:
     """Find connections declared in connections.json but unused by any workflow."""
@@ -120,7 +161,8 @@ def scan_connections(
     referenced = collect_referenced_connections(root_path)
     typer.echo(f"{len(referenced)} identical connections found")
 
-    declared = collect_declared_connections(root_path / "connections.json")
+    conn_path = root_path / "connections.json"
+    declared = collect_declared_connections(conn_path)
     typer.echo(f"{len(declared)} connections found in connections.json.")
 
     orphans = declared - referenced
@@ -136,11 +178,30 @@ def scan_connections(
         table.add_row(ctype, cname)
     console.print(table)
 
-    if apply:
-        raise typer.BadParameter(
-            "--apply is not yet implemented in the Python port (requires the ARM "
-            "client to push updated appsettings). Track via the cmd-scan-connections-apply todo."
+    if not apply:
+        return
+
+    if not yes:
+        typer.confirm(
+            "Whether you would like to remove those data in connections.json and appsettings?",
+            abort=True,
         )
+
+    typer.echo("Start to clean up...")
+    unused_settings = _apply_cleanup(conn_path, orphans)
+
+    if unused_settings:
+        typer.echo(
+            f"Removing {len(unused_settings)} unused app-setting(s) from ARM: "
+            + ", ".join(sorted(unused_settings))
+        )
+        current = arm.get_appsettings()
+        new_settings = {k: v for k, v in current.items() if k not in unused_settings}
+        arm.put_appsettings(new_settings)
+
+    typer.echo(
+        "All data related to unused API connections and Service Providers have been cleaned up."
+    )
 
 
 def register(validate_app: typer.Typer) -> None:

@@ -141,10 +141,15 @@ def _hostruntime_request(
 def list_runs(
     workflow: str, *, status: str, start_time: str, end_time: str
 ) -> Iterator[dict[str, Any]]:
-    """List workflow runs matching the status/date window, yielding through nextLink."""
+    """List workflow runs matching status/date window, yielding through nextLink.
+
+    Filter format matches `Operations/BatchResubmit.cs:21` — uses `gt`/`lt`
+    and unquoted ISO timestamps. Callers should pass ISO-8601 strings
+    (e.g. `2026-05-14T00:00:00Z`).
+    """
     flt = (
-        f"status eq '{status}' and startTime ge '{start_time}' "
-        f"and startTime le '{end_time}'"
+        f"status eq '{status}' and startTime gt {start_time} "
+        f"and startTime lt {end_time}"
     )
     url: str | None = (
         f"{_hostruntime_base()}/workflows/{workflow}/runs?api-version=2018-11-01"
@@ -166,8 +171,20 @@ def cancel_run(workflow: str, run_id: str) -> None:
 
 
 def resubmit_run(workflow: str, run_id: str) -> None:
+    """Resubmit by run ID — newer endpoint shape."""
     url = (
         f"{_hostruntime_base()}/workflows/{workflow}/runs/{run_id}/resubmit"
         "?api-version=2018-11-01"
     )
     _hostruntime_request("POST", url, expected_message=f"resubmit {workflow}/{run_id}")
+
+
+def resubmit_trigger_history(workflow: str, trigger: str, run_id: str) -> None:
+    """Resubmit via trigger/histories — matches BatchResubmit.cs:95 .NET semantics."""
+    url = (
+        f"{_hostruntime_base()}/workflows/{workflow}/triggers/{trigger}"
+        f"/histories/{run_id}/resubmit?api-version=2018-11-01"
+    )
+    _hostruntime_request(
+        "POST", url, expected_message=f"resubmit {workflow}/{trigger}/{run_id}"
+    )

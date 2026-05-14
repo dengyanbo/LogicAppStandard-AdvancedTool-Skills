@@ -52,12 +52,18 @@ from .commands.tools_env import register as _reg_tools_env
 from .commands.filter_host_logs import register as _reg_filter_host_logs
 from .commands.endpoint_validation import register as _reg_endpoint_validation
 from .commands.scan_connections import register as _reg_scan_connections
+from .commands.validate_sp_connectivity import register as _reg_validate_sp_conn
+from .commands.batch_resubmit import register as _reg_batch_resubmit
+from .commands.snapshot import register as _reg_snapshot
 
 _reg_tools(tools_app)
 _reg_tools_env(tools_app)
 _reg_filter_host_logs(site_app)
 _reg_endpoint_validation(validate_app)
 _reg_scan_connections(validate_app)
+_reg_validate_sp_conn(validate_app)
+_reg_batch_resubmit(runs_app)
+_reg_snapshot(site_app)
 
 
 if __name__ == "__main__":

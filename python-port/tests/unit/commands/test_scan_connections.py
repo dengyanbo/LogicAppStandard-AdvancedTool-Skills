@@ -3,11 +3,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
+import pytest
 from typer.testing import CliRunner
 
+from lat import arm
 from lat.cli import app
 from lat.commands.scan_connections import (
+    _collect_appsetting_refs,
     _collect_connections_from_actions,
     collect_declared_connections,
     collect_referenced_connections,
@@ -210,16 +214,175 @@ def test_scan_missing_connections_json(tmp_path: Path) -> None:
     assert "Cannot find connections.json" in result.output
 
 
-def test_scan_apply_flag_not_implemented(tmp_path: Path) -> None:
-    """--apply currently raises BadParameter until ARM client is fleshed out."""
+def test_scan_apply_removes_orphans_and_pushes_appsettings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--apply: orphans deleted from connections.json + app-settings push via ARM."""
+    # Two API conns (one orphan), one SP orphan referencing two app settings.
+    data = {
+        "managedApiConnections": {
+            "used-api": {},
+            "orphan-api": {},
+        },
+        "serviceProviderConnections": {
+            "orphan-sp": {
+                "parameterValues": {
+                    "endpoint": "@appsetting('SP_ENDPOINT')",
+                    "key": "@appsetting('SP_KEY')",
+                    "static": "plain-value",
+                }
+            }
+        },
+    }
+    (tmp_path / "connections.json").write_text(json.dumps(data), encoding="utf-8")
+    # One workflow that uses ONLY used-api
+    wf_dir = tmp_path / "wf1"
+    wf_dir.mkdir()
+    (wf_dir / "workflow.json").write_text(
+        json.dumps(
+            {
+                "definition": {
+                    "actions": {
+                        "A": {
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "host": {"connection": {"referenceName": "used-api"}}
+                            },
+                        }
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    # Mock ARM
+    put_calls: list[dict[str, str]] = []
+    monkeypatch.setattr(
+        arm, "get_appsettings", lambda: {
+            "SP_ENDPOINT": "v1",
+            "SP_KEY": "v2",
+            "KEEP_ME": "v3",
+        }
+    )
+    monkeypatch.setattr(arm, "put_appsettings", lambda props: put_calls.append(dict(props)))
+
+    result = runner.invoke(
+        app,
+        ["validate", "scan-connections", "--root", str(tmp_path), "--apply", "--yes"],
+    )
+    assert result.exit_code == 0, result.stdout
+
+    # connections.json updated
+    after = json.loads((tmp_path / "connections.json").read_text(encoding="utf-8"))
+    assert after["managedApiConnections"] == {"used-api": {}}
+    assert after["serviceProviderConnections"] == {}
+
+    # ARM put called once with only the unrelated setting
+    assert put_calls == [{"KEEP_ME": "v3"}]
+    assert "have been cleaned up" in result.stdout
+
+
+def test_scan_apply_no_orphans_no_arm_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--apply with no orphans is a no-op (no ARM call)."""
+    _make_workflow(
+        tmp_path,
+        "wf1",
+        {
+            "actions": {
+                "A": {
+                    "type": "ApiConnection",
+                    "inputs": {"host": {"connection": {"referenceName": "used"}}},
+                }
+            }
+        },
+    )
+    _make_connections_json(tmp_path, api=["used"])
+
+    arm_called: list[bool] = []
+    monkeypatch.setattr(arm, "get_appsettings", lambda: arm_called.append(True) or {})
+    monkeypatch.setattr(arm, "put_appsettings", lambda props: arm_called.append(True))
+
+    result = runner.invoke(
+        app,
+        ["validate", "scan-connections", "--root", str(tmp_path), "--apply", "--yes"],
+    )
+    assert result.exit_code == 0
+    assert arm_called == []
+
+
+def test_scan_apply_sp_without_appsettings_skips_arm_put(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Orphan SP with no @appsetting refs: connections.json mutated, no ARM put."""
+    data = {
+        "managedApiConnections": {},
+        "serviceProviderConnections": {
+            "orphan-sp": {"parameterValues": {"key": "literal-string"}}
+        },
+    }
+    (tmp_path / "connections.json").write_text(json.dumps(data), encoding="utf-8")
+    (tmp_path / "wf1").mkdir()
+    (tmp_path / "wf1" / "workflow.json").write_text(
+        json.dumps({"definition": {"actions": {}}}), encoding="utf-8"
+    )
+
+    put_calls: list[dict] = []
+    monkeypatch.setattr(arm, "get_appsettings", lambda: {"OTHER": "v"})
+    monkeypatch.setattr(arm, "put_appsettings", lambda p: put_calls.append(p))
+
+    result = runner.invoke(
+        app,
+        ["validate", "scan-connections", "--root", str(tmp_path), "--apply", "--yes"],
+    )
+    assert result.exit_code == 0
+    # connections.json mutated
+    after = json.loads((tmp_path / "connections.json").read_text(encoding="utf-8"))
+    assert after["serviceProviderConnections"] == {}
+    # No app-settings push (nothing to remove)
+    assert put_calls == []
+
+
+def test_scan_apply_requires_confirmation_without_yes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _make_workflow(tmp_path, "wf1", {"actions": {}})
     _make_connections_json(tmp_path, api=["orphan"])
+
+    put_calls: list[dict] = []
+    monkeypatch.setattr(arm, "get_appsettings", lambda: {})
+    monkeypatch.setattr(arm, "put_appsettings", lambda p: put_calls.append(p))
+
+    # Decline at the prompt
     result = runner.invoke(
         app,
         ["validate", "scan-connections", "--root", str(tmp_path), "--apply"],
+        input="n\n",
     )
     assert result.exit_code != 0
-    assert "not yet implemented" in result.output
+    # connections.json NOT mutated
+    after = json.loads((tmp_path / "connections.json").read_text(encoding="utf-8"))
+    assert "orphan" in after["managedApiConnections"]
+    assert put_calls == []
+
+
+def test_collect_appsetting_refs_finds_all_in_string_values() -> None:
+    """Detects every @appsetting reference, ignores literals."""
+    params = {
+        "endpoint": "@appsetting('VAR_A')",
+        "key": "@appsetting('VAR_B')",
+        "literal": "no-substitution-here",
+        "nested": {"ignored": "@appsetting('VAR_C')"},  # only top-level strings parsed
+    }
+    refs = _collect_appsetting_refs(params)
+    assert refs == {"VAR_A", "VAR_B"}
+
+
+def test_collect_appsetting_refs_handles_non_dict() -> None:
+    assert _collect_appsetting_refs(None) == set()
+    assert _collect_appsetting_refs("not-a-dict") == set()
 
 
 def test_collect_referenced_skips_invalid_json(tmp_path: Path) -> None:
