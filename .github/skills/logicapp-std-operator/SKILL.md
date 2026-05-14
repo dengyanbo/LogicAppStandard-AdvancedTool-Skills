@@ -1,30 +1,17 @@
 ---
 name: logicapp-std-operator
-description: |
-  Diagnose, recover, and operate Azure Logic Apps Standard at the storage /
-  ARM level using the `lat` CLI (the Python port of LogicAppAdvancedTool that
-  ships under python-port/ in this repository).
-
-  Invoke this skill when the user:
-    - Reports a workflow is missing, broken, or behaving unexpectedly
-    - Mentions accidentally deleting / overwriting a workflow
-    - Needs to triage run failures, search payloads, bulk-resubmit / cancel
-    - Wants to validate storage / service-provider / endpoint connectivity
-    - Wants to back up, snapshot, or roll back a Logic App Standard site
-    - Wants to clean up old run history to save storage cost
-    - Asks how to unblock connectors against a Storage / KV / Event Hub firewall
-    - Uses any of these terms: "Logic App Standard", "LogicAppAdvancedTool",
-      "FLOWVERSION row", "DefinitionCompressed", "Murmur prefix", "hostruntime",
-      "Kudu", "flow<prefix>flows", "connections.json", or any classic .NET
-      command name (Backup, RestoreSingleWorkflow, CleanUpContainers, etc.)
-    - Reports an error from the .NET LogicAppAdvancedTool.exe and wants the
-      equivalent fix using the Python port
-
+description: >-
+    Diagnose, recover, and operate Azure Logic Apps Standard at the storage / ARM level using the lat CLI
+    (the Python port of LogicAppAdvancedTool, shipped under python-port/ in this repository).
+    Invoke when the user reports a Logic App Standard workflow that is missing, broken, or behaving
+    unexpectedly; needs to triage run failures or search payloads; wants to bulk resubmit or cancel runs;
+    wants to validate storage / service-provider / endpoint connectivity; wants to back up, snapshot,
+    or roll back an LA Std site; wants to clean up old run history; needs to unblock connectors against
+    a Storage / Key Vault / Event Hub firewall; or uses terms like Logic App Standard,
+    LogicAppAdvancedTool, FLOWVERSION row, DefinitionCompressed, Murmur prefix, hostruntime, Kudu,
+    flow-prefix-flows, connections.json, or any classic .NET command name (Backup, RestoreSingleWorkflow,
+    CleanUpContainers, ValidateStorageConnectivity, BatchResubmit, MergeRunHistory, etc.).
 allowed-tools: [powershell, view, grep, glob, edit, ask_user]
-prerequisites:
-  - `lat` is on PATH (uv pip install -e . from python-port/)
-  - User can `az login` OR the env exposes WEBSITE_OWNER_NAME +
-    AzureWebJobsStorage / AzureWebJobsStorage__accountName
 ---
 
 # Skill: Operate a Logic App Standard with `lat`
@@ -36,6 +23,18 @@ to keep the user's workflows running and recoverable.
 This skill is the **runtime** counterpart of `logicapp-std-tool-python-port`:
 that skill drives porting the .NET tool to Python; *this* skill uses the
 finished `lat` to actually operate a Logic App.
+
+## 0. Prerequisites
+
+Before doing anything else, confirm these are in place (see
+[`setup.md`](setup.md) for full details):
+
+- `lat` is on PATH — install with `uv pip install -e .` (or `pip install -e .`)
+  from `python-port/` in this repository
+- The user can `az login` on their workstation **or** the env exposes
+  `WEBSITE_OWNER_NAME` + either `AzureWebJobsStorage` (legacy conn string)
+  or `AzureWebJobsStorage__accountName` (Entra ID storage)
+- `WEBSITE_SITE_NAME`, `WEBSITE_RESOURCE_GROUP`, `REGION_NAME` are set
 
 ## 1. How to work
 
