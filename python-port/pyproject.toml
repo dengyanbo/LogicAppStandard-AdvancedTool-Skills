@@ -29,6 +29,8 @@ dependencies = [
     "azure-storage-blob>=12.20.0",
     "azure-storage-file-share>=12.16.0",
     "azure-storage-queue>=12.10.0",
+    "azure-mgmt-web>=7.2.0",
+    "azure-mgmt-network>=27.0.0",
 ]
 
 [project.optional-dependencies]

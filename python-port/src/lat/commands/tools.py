@@ -9,14 +9,19 @@ and stateless.
 | `tools generate-prefix`         | `Tools GeneratePrefix`           | Tools/GeneratePrefix.cs       |
 | `tools runid-to-datetime`       | `Tools RunIDToDateTime`          | Tools/RunIDToDatetime.cs      |
 | `tools decode-zstd`             | `Tools DecodeZSTD`               | Program.cs:957-972 inline call|
+| `tools get-mi-token`            | `Tools GetMIToken`               | Program.cs:882-898            |
+| `tools restart`                 | `Tools Restart`                  | Tools/Restart.cs              |
 """
 from __future__ import annotations
 
 import base64
+import json
 from datetime import datetime, timezone
 
 import typer
 
+from ..arm import restart_site
+from ..auth import DEFAULT_AUDIENCE, retrieve_token
 from ..storage.compression import decompress
 from ..storage.prefix import generate
 
@@ -114,16 +119,54 @@ def decode_zstd(
 
 
 # ---------------------------------------------------------------------------
+# Tools GetMIToken
+# ---------------------------------------------------------------------------
+
+
+def get_mi_token(
+    audience: str = typer.Option(
+        DEFAULT_AUDIENCE, "-a", "--audience",
+        help="Audience for the token. Defaults to https://management.azure.com.",
+    ),
+) -> None:
+    """Acquire a Managed Identity (or fallback) token and print it as JSON.
+
+    Replaces the .NET tool's hand-rolled IMDS POST; backed by
+    `azure.identity.ManagedIdentityCredential` (or DefaultAzureCredential
+    chain for local development).
+    """
+    token = retrieve_token(audience)
+    typer.echo(json.dumps(token.to_dict(), indent=2))
+
+
+# ---------------------------------------------------------------------------
+# Tools Restart
+# ---------------------------------------------------------------------------
+
+
+def restart(
+    yes: bool = typer.Option(
+        False, "--yes", "-y",
+        help="Skip the restart confirmation prompt.",
+    ),
+) -> None:
+    """Restart the Logic App Standard site via ARM (`web_apps.restart`)."""
+    if not yes:
+        typer.confirm(
+            "Restart the Logic App? In-flight workflow runs may be interrupted.",
+            abort=True,
+        )
+    restart_site()
+    typer.echo("Restart request accepted.")
+
+
+# ---------------------------------------------------------------------------
 # Registration with the `tools` Typer sub-app.
 # ---------------------------------------------------------------------------
 
 
 def register(tools_app: typer.Typer) -> None:
-    """Register all available `Tools` sub-commands.
-
-    Commands not yet implemented (ImportAppsettings, CleanEnvironmentVariable,
-    GetMIToken, Restart) will be added here as their backing utilities mature.
-    """
+    """Register all available `Tools` sub-commands."""
     tools_app.command("generate-prefix", help="Generate Logic App / workflow prefix.")(
         generate_prefix
     )
@@ -132,4 +175,10 @@ def register(tools_app: typer.Typer) -> None:
     )
     tools_app.command("decode-zstd", help="Decode a base64 compressed value.")(
         decode_zstd
+    )
+    tools_app.command("get-mi-token", help="Acquire and print a Managed Identity token.")(
+        get_mi_token
+    )
+    tools_app.command("restart", help="Restart the Logic App site via ARM.")(
+        restart
     )
