@@ -62,6 +62,10 @@ from .commands.whitelist_connector_ip import register as _reg_whitelist_ip
 from .commands.list_versions import register as _reg_list_versions
 from .commands.list_workflows import register as _reg_list_workflows
 from .commands.backup import register as _reg_backup
+from .commands.decode import register as _reg_decode
+from .commands.generate_table_prefix import register as _reg_generate_table_prefix
+from .commands.retrieve_action_payload import register as _reg_retrieve_action_payload
+from .commands.generate_run_history_url import register as _reg_generate_run_history_url
 
 _reg_tools(tools_app)
 _reg_tools_env(tools_app)
@@ -78,6 +82,10 @@ _reg_whitelist_ip(validate_app)
 _reg_list_versions(workflow_app)
 _reg_list_workflows(workflow_app)
 _reg_backup(workflow_app)
+_reg_decode(workflow_app)
+_reg_generate_table_prefix(tools_app)
+_reg_retrieve_action_payload(runs_app)
+_reg_generate_run_history_url(runs_app)
 
 
 if __name__ == "__main__":
