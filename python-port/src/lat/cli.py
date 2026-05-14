@@ -69,6 +69,13 @@ from .commands.generate_run_history_url import register as _reg_generate_run_his
 from .commands.search_in_history import register as _reg_search_in_history
 from .commands.retrieve_failures import register as _reg_retrieve_failures
 from .commands.cancel_runs import register as _reg_cancel_runs
+from .commands.revert import register as _reg_revert
+from .commands.clone import register as _reg_clone
+from .commands.convert_to_stateful import register as _reg_convert_to_stateful
+from .commands.restore_workflow_with_version import (
+    register as _reg_restore_workflow_with_version,
+)
+from .commands.ingest_workflow import register as _reg_ingest_workflow
 
 _reg_tools(tools_app)
 _reg_tools_env(tools_app)
@@ -92,6 +99,11 @@ _reg_generate_run_history_url(runs_app)
 _reg_search_in_history(runs_app)
 _reg_retrieve_failures(runs_app)
 _reg_cancel_runs(runs_app)
+_reg_revert(workflow_app)
+_reg_clone(workflow_app)
+_reg_convert_to_stateful(workflow_app)
+_reg_restore_workflow_with_version(workflow_app)
+_reg_ingest_workflow(workflow_app)
 
 
 if __name__ == "__main__":
