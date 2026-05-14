@@ -27,6 +27,15 @@ prompt). Your job as an agent is to:
 The LA's run-history names embed `yyyyMMdd` at offset 34 of the resource
 name. Anything strictly **before** `--date` (yyyyMMdd) is deletion-eligible.
 
+> Why offset 34? Runtime names follow `flow<la_prefix:15><wf_prefix:15>...`
+> — that's `4 + 15 + 15 = 34` chars before the date. The 15-char prefixes
+> come from Murmur64 of (la-name) and (flow-id), truncated. See
+> `python-port/src/lat/storage/prefix.py` for the algorithm.
+
+> To convert relative time ("90 days ago", "this week") into the
+> `yyyyMMdd` format `lat` expects, see
+> [`../references/time-helpers.md`](../references/time-helpers.md).
+
 ### List candidates without deleting
 
 There's no built-in `--dry-run` on `cleanup *`, but you can preview via the

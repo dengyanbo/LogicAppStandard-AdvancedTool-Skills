@@ -51,13 +51,21 @@ finished `lat` to actually operate a Logic App.
    | "before I change X, back up", "roll back my LA" | [`snapshot-and-rollback.md`](playbooks/snapshot-and-rollback.md) |
    | "resubmit failed runs", "cancel everything that's running" | [`bulk-resubmit-or-cancel.md`](playbooks/bulk-resubmit-or-cancel.md) |
    | "connector can't reach Storage/KV/EH because of firewall" | [`unblock-connector-firewall.md`](playbooks/unblock-connector-firewall.md) |
+   | "I deleted X, recreated with same name, run history is gone" | [`merge-run-history.md`](playbooks/merge-run-history.md) |
+   | "my LA is broken", "something's wrong", vague symptom | [`diagnostic-first.md`](playbooks/diagnostic-first.md) |
 3. **Walk the playbook**: each one has Trigger / Diagnose / Decide / Execute /
    Verify / Rollback sections. Follow them.
-4. **Default to read-only**: never start with a destructive command. Always
+4. **When in doubt** (vague symptom, multiple plausible playbooks), start
+   with [`playbooks/diagnostic-first.md`](playbooks/diagnostic-first.md) and
+   pivot once a root cause emerges.
+5. **Default to read-only**: never start with a destructive command. Always
    inspect first.
-5. **Show the command before running it** — surface the exact `lat ...` line,
+6. **Show the command before running it** — surface the exact `lat ...` line,
    the env vars in effect, and what you expect to happen.
-6. **Report the result** — paste relevant output, then say what's next.
+7. **Report the result** — paste relevant output, then say what's next.
+8. **Translating relative time** ("yesterday", "this week", "90 days ago")
+   into the `yyyyMMdd` format `lat` expects — see
+   [`references/time-helpers.md`](references/time-helpers.md).
 
 ## 2. Non-negotiable safety rules
 
@@ -128,10 +136,17 @@ Quick aliases (the ones most often asked):
 | `IngestWorkflow -wf X` | `lat workflow ingest-workflow -wf X` |
 | `MergeRunHistory` | `lat workflow merge-run-history` |
 
-Deprecated / removed in the .NET tool (do NOT execute):
-`ClearJobQueue`, `RestoreSingleWorkflow` (use `restore-workflow-with-version`),
-`RestoreRunHistory`, `RestoreAll`. If the user asks for these by name, tell
-them they were removed upstream and offer the closest live equivalent.
+Deprecated / removed in the .NET tool — fast-lookup table:
+
+| User says... | Status | What to reply | Offer instead |
+| --- | --- | --- | --- |
+| `ClearJobQueue` | Deprecated | "ClearJobQueue was deprecated upstream — direct job-queue manipulation isn't safe. No drop-in replacement." | Ask the actual goal. Stuck runs → [`bulk-resubmit-or-cancel.md`](playbooks/bulk-resubmit-or-cancel.md) Path B (⛔). Storage cost → [`safe-cleanup.md`](playbooks/safe-cleanup.md). |
+| `RestoreSingleWorkflow` | Deprecated upstream | "RestoreSingleWorkflow was deprecated — use the version-aware variant." | [`restore-deleted-workflow.md`](playbooks/restore-deleted-workflow.md) with `lat workflow restore-workflow-with-version` |
+| `RestoreRunHistory` | `#region REMOVED` in `Program.cs` | "RestoreRunHistory was removed upstream because the auto-create-and-rekey flow was fragile." | If the goal is "re-attach old run history to a recreated workflow", use [`merge-run-history.md`](playbooks/merge-run-history.md) (⛔). |
+| `RestoreAll` | `#region REMOVED` in `Program.cs` | "RestoreAll was removed upstream — restoring every deleted workflow at once is rarely the right move." | Restore individually via [`restore-deleted-workflow.md`](playbooks/restore-deleted-workflow.md) for each workflow the user actually needs. |
+
+When the user types these by name, mention the deprecation once, then route
+to the offered alternative.
 
 ## 4. Platform conventions
 
@@ -154,8 +169,8 @@ labelled `powershell` and `bash`.
    of every command
 5. The relevant playbook for the user's specific issue
 6. References (`env-vars.md`, `aad-vs-connstring.md`, `nsp-troubleshooting.md`,
-   `dotnet-command-mapping.md`) — only when a playbook links to them or the
-   user hits one of those exact failure modes
+   `dotnet-command-mapping.md`, `time-helpers.md`) — only when a playbook
+   links to them or the user hits one of those exact failure modes
 
 ## 6. When NOT to invoke this skill
 
@@ -182,4 +197,6 @@ investigation order before reaching for any destructive command:
 ```
 
 Each step narrows the search. Stop as soon as a clear root cause emerges, and
-hand control back to the user with a recommended next playbook.
+hand control back to the user with a recommended next playbook. For the
+full investigation flow (with per-failure-class pivots), use the dedicated
+[`playbooks/diagnostic-first.md`](playbooks/diagnostic-first.md).

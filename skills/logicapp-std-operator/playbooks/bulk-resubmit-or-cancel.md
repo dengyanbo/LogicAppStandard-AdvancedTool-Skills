@@ -51,7 +51,11 @@ ones, fix the workflow, resubmit the originally-failed ones.
 
 Ask via `ask_user`:
 - **Workflow name** — exactly one workflow per invocation
-- **Date range** — `--from YYYY-MM-DD` / `--to YYYY-MM-DD`
+- **Date range** — `--from YYYY-MM-DD` / `--to YYYY-MM-DD`. See
+  [`../references/time-helpers.md`](../references/time-helpers.md) for
+  one-liners converting "yesterday" / "this week" / "last 7 days" into the
+  exact format `batch-resubmit` expects (hyphenated `YYYY-MM-DD`, NOT
+  `yyyyMMdd`).
 - **Status filter** — usually `Failed`, sometimes `Cancelled` or
   `TimedOut`
 - **Estimated count** — show the user before they confirm

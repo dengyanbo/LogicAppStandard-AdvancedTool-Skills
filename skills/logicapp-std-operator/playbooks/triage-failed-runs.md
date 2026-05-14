@@ -35,6 +35,8 @@ fix it":
 2. Ask which workflow.
 
 3. Get a date — usually "today" or "yesterday" (UTC). Confirm timezone.
+   See [`../references/time-helpers.md`](../references/time-helpers.md)
+   for one-liners to convert relative time → `yyyyMMdd`.
 
 ## Path A — "list all failures on <date>"
 
