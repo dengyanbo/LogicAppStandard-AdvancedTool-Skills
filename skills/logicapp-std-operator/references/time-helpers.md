@@ -112,12 +112,16 @@ from=$first_of_prev; to=$last_of_prev
 
 ## Converting between formats
 
-`lat` is inconsistent (matching the .NET tool): some commands want
-`yyyyMMdd` (no hyphens — `cleanup *`, `backup --date`, all of
-`retrieve-failures-by-date`, `retrieve-action-payload`, `search-in-history`,
-`generate-run-history-url`), others want `yyyy-MM-dd` (with hyphens —
-`batch-resubmit --from / --to`, `merge-run-history --start / --end` takes
-`yyyyMMdd` though).
+`lat` is inconsistent (matching the .NET tool):
+
+- **`yyyyMMdd` (no hyphens)** — every command **except** `batch-resubmit`.
+  This is the default; assume it unless told otherwise. Commands:
+  `workflow backup`, `runs retrieve-failures-by-{date,run}`,
+  `runs retrieve-action-payload`, `runs search-in-history`,
+  `runs generate-run-history-url`, `workflow merge-run-history --start / --end`,
+  and all three `cleanup *`.
+- **`yyyy-MM-dd` (with hyphens)** — exactly one command: `runs batch-resubmit`
+  with `--from` and `--to`.
 
 | Command | Date format | Param |
 | --- | --- | --- |

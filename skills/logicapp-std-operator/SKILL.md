@@ -184,19 +184,8 @@ labelled `powershell` and `bash`.
 
 ## 7. Diagnostic-first mindset
 
-If the user gives you a vague symptom ("my LA is broken"), follow this
-investigation order before reaching for any destructive command:
-
-```
-1. lat validate storage-connectivity --skip-pe-check
-2. lat validate sp-connectivity
-3. lat validate workflows
-4. lat workflow list-workflows-summary
-5. lat runs retrieve-failures-by-date -wf <suspect> -d <today>
-6. lat site filter-host-logs            # if you can reach Kudu/wwwroot
-```
-
-Each step narrows the search. Stop as soon as a clear root cause emerges, and
-hand control back to the user with a recommended next playbook. For the
-full investigation flow (with per-failure-class pivots), use the dedicated
-[`playbooks/diagnostic-first.md`](playbooks/diagnostic-first.md).
+When the user gives you a vague symptom ("my LA is broken"), do NOT reach
+for a destructive command. Start with [`playbooks/diagnostic-first.md`](playbooks/diagnostic-first.md)
+— it walks you through the full read-only sweep (storage / SP /
+workflows / inventory / failures / host logs), and contains a root-cause
+→ pivot-playbook table.
