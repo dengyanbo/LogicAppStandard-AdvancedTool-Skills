@@ -79,4 +79,4 @@ upstream and offer the closest live equivalent.
 | Only reads `AzureWebJobsStorage` conn string | Also reads `AzureWebJobsStorage__accountName` etc. (AAD mode) |
 
 When in doubt, link the user to
-[`python-port/MIGRATION-NOTES.md`](../../python-port/MIGRATION-NOTES.md).
+[`python-port/MIGRATION-NOTES.md`](../../../../python-port/MIGRATION-NOTES.md).

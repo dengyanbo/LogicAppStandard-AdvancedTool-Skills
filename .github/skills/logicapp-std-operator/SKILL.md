@@ -175,7 +175,7 @@ labelled `powershell` and `bash`.
 ## 6. When NOT to invoke this skill
 
 - The user wants to *port* the .NET tool to another language — that's
-  [`logicapp-std-tool-python-port`](../logicapp-std-tool-python-port/SKILL.md)
+  [`logicapp-std-tool-python-port`](../../../skills/logicapp-std-tool-python-port/SKILL.md)
 - The user wants design-time Logic App authoring help (designer, expressions,
   connector configuration) — `lat` operates *below* the designer layer
 - The user wants infrastructure provisioning (Bicep, Terraform) — `lat` does
