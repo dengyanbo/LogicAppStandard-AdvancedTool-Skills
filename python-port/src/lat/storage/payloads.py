@@ -87,3 +87,53 @@ def decode_error(binary: bytes | None) -> str:
     if not binary:
         return ""
     return compression.decompress(binary) or ""
+
+
+# ---------------------------------------------------------------------------
+# HistoryRecords — mirrors Structures/RunHistoryStructure.cs HistoryRecords
+# ---------------------------------------------------------------------------
+
+
+def _decode_int(value: Any) -> int | None:
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value:
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
+def history_record(entity: dict[str, Any]) -> dict[str, Any]:
+    """Build a HistoryRecords-shaped dict from a raw table row.
+
+    Matches the JSON serialization order/keys produced by .NET's
+    HistoryRecords(TableEntity) constructor.
+    """
+    inputs = decode_content(entity.get("InputsLinkCompressed"))
+    outputs = decode_content(entity.get("OutputsLinkCompressed"))
+    raw_error = decode_error(entity.get("Error"))
+    error_obj: dict[str, Any] | None = None
+    if raw_error:
+        try:
+            parsed = json.loads(raw_error)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            error_obj = {
+                "code": parsed.get("code"),
+                "message": parsed.get("message"),
+            }
+    ts = entity.get("Timestamp")
+    return {
+        "Timestamp": ts.isoformat() if hasattr(ts, "isoformat") else ts,
+        "ActionName": entity.get("ActionName"),
+        "Code": entity.get("Code"),
+        "InputContent": inputs.actual_content,
+        "OutputContent": outputs.actual_content,
+        "Error": error_obj,
+        "RepeatItemName": entity.get("RepeatItemScopeName"),
+        "RepeatItemIdenx": _decode_int(entity.get("RepeatItemIndex")),
+        "ActionRepetitionName": entity.get("ActionRepetitionName"),
+    }
