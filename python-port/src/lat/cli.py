@@ -59,6 +59,9 @@ from .commands.batch_resubmit import register as _reg_batch_resubmit
 from .commands.snapshot import register as _reg_snapshot
 from .commands.sync_to_local import register as _reg_sync_to_local
 from .commands.whitelist_connector_ip import register as _reg_whitelist_ip
+from .commands.list_versions import register as _reg_list_versions
+from .commands.list_workflows import register as _reg_list_workflows
+from .commands.backup import register as _reg_backup
 
 _reg_tools(tools_app)
 _reg_tools_env(tools_app)
@@ -72,6 +75,9 @@ _reg_batch_resubmit(runs_app)
 _reg_snapshot(site_app)
 _reg_sync_to_local(site_app)
 _reg_whitelist_ip(validate_app)
+_reg_list_versions(workflow_app)
+_reg_list_workflows(workflow_app)
+_reg_backup(workflow_app)
 
 
 if __name__ == "__main__":
