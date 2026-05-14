@@ -84,3 +84,41 @@ def test_varint_encoding_examples() -> None:
     assert _write_varint(0x80) == b"\x80\x01"
     assert _write_varint(0x3FFF) == b"\xFF\x7F"
     assert _write_varint(0x4000) == b"\x80\x80\x01"
+
+
+def test_decompress_zstd_frame_without_content_size() -> None:
+    """Mirrors what the LA runtime emits: ZSTD frame WITHOUT content size hint.
+
+    The .NET runtime compresses with the content size omitted from the ZSTD
+    frame header (it relies on the varint prefix carrying the uncompressed
+    length). python-zstandard's default `ZstdCompressor().compress()` *does*
+    embed the content size; we have to construct the no-size frame by hand
+    via stream_writer to exercise the same code path.
+    """
+    import io
+
+    import zstandard as zstd
+
+    payload = '{"definition":{"actions":{"a":{}}},"kind":"Stateful"}'
+    raw = payload.encode("utf-8")
+
+    # Build a ZSTD frame that omits the content-size header.
+    buf = io.BytesIO()
+    writer = zstd.ZstdCompressor(level=1).stream_writer(buf, size=-1)
+    writer.write(raw)
+    writer.flush(zstd.FLUSH_FRAME)
+    compressed_no_size = buf.getvalue()
+
+    # Verify the frame really lacks the content size (4th bit of frame header
+    # descriptor is the "content size flag"; bytes 4-5 are header descriptor).
+    # Easier sanity check: the default-decompressor without size hint must fail.
+    with pytest.raises(zstd.ZstdError):
+        zstd.ZstdDecompressor().decompress(compressed_no_size)
+
+    # Now wrap with our LA-runtime varint header and verify our decompress()
+    # recovers the original payload via the max_output_size fallback path.
+    header = _write_varint((len(raw) << 3) | 7)
+    framed = header + compressed_no_size
+
+    out = decompress(framed)
+    assert out == payload

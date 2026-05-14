@@ -60,8 +60,14 @@ def decompress(data: bytes | None) -> str | None:
         return None
     algorithm = data[0] & 7
     if algorithm == 7:
-        _length_and_algo, offset = _read_varint(data, 0)
-        return zstd.ZstdDecompressor().decompress(data[offset:]).decode("utf-8")
+        length_and_algo, offset = _read_varint(data, 0)
+        uncompressed_size = length_and_algo >> 3
+        # The LA runtime omits the content size from the ZSTD frame header
+        # itself (which python-zstandard requires by default); we recover it
+        # from the varint prefix and pass it via max_output_size.
+        return zstd.ZstdDecompressor().decompress(
+            data[offset:], max_output_size=uncompressed_size
+        ).decode("utf-8")
     if algorithm == 6:
         raise NotImplementedError("LZ4 compression is not supported")
     # Legacy Deflate path (raw deflate stream, no zlib header)
