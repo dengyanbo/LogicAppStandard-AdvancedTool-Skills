@@ -49,11 +49,15 @@ class _StorageConnInfo:
     account_name: str
     endpoint_suffix: str
     service: str  # 'Blob' | 'Queue' | 'Table' | 'File'
-    connection_string: str
+    connection_string: str | None  # None when authenticating via AAD
 
     @property
     def endpoint(self) -> str:
         return f"{self.account_name}.{_SERVICE_URL_SEGMENT[self.service]}.{self.endpoint_suffix}"
+
+    @property
+    def endpoint_url(self) -> str:
+        return f"https://{self.endpoint}"
 
 
 @dataclass
@@ -81,15 +85,26 @@ def _parse_connection_string(cs: str) -> dict[str, str]:
 def _build_validators(
     main_cs: str | None, file_cs: str | None
 ) -> list[_StorageConnInfo]:
-    """Construct one _StorageConnInfo per service, returning [] if main_cs missing."""
-    if not main_cs:
+    """Construct one _StorageConnInfo per service.
+
+    Resolves the account name + suffix from EITHER a connection string OR
+    the AAD-style settings (AzureWebJobsStorage__accountName etc.). Returns
+    an empty list if neither is available.
+    """
+    if main_cs and "AccountKey=" in main_cs:
+        parsed = _parse_connection_string(main_cs)
+        account = parsed.get("AccountName") or ""
+        suffix = parsed.get("EndpointSuffix") or "core.windows.net"
+        main_conn: str | None = main_cs
+    elif settings.storage_account_name:
+        account = settings.storage_account_name
+        suffix = settings.storage_endpoint_suffix
+        main_conn = None  # AAD mode
+    else:
         return []
-    parsed = _parse_connection_string(main_cs)
-    account = parsed.get("AccountName") or ""
-    suffix = parsed.get("EndpointSuffix") or "core.windows.net"
 
     out = [
-        _StorageConnInfo(account, suffix, svc, main_cs)
+        _StorageConnInfo(account, suffix, svc, main_conn)
         for svc in ("Blob", "Queue", "Table")
     ]
     if file_cs:
@@ -99,7 +114,7 @@ def _build_validators(
                 file_parsed.get("AccountName") or account,
                 file_parsed.get("EndpointSuffix") or suffix,
                 "File",
-                file_cs,
+                file_cs if "AccountKey=" in file_cs else None,
             )
         )
     return out
@@ -155,21 +170,41 @@ def _is_private_endpoint(ip: str, public_prefixes: list[str]) -> str:
 
 
 def _auth_check(conn: _StorageConnInfo) -> str:
-    """Use the matching Azure SDK client to verify auth via get_service_properties."""
+    """Use the matching Azure SDK client to verify auth via get_service_properties.
+
+    Picks credential-based or connection-string-based construction
+    automatically based on whether `conn.connection_string` is set.
+    """
+    cred = None
+    if conn.connection_string is None:
+        cred = credential()
     try:
         if conn.service == "Blob":
-            BlobServiceClient.from_connection_string(
-                conn.connection_string
-            ).get_service_properties()
+            client = (
+                BlobServiceClient(account_url=conn.endpoint_url, credential=cred)
+                if cred is not None
+                else BlobServiceClient.from_connection_string(conn.connection_string)
+            )
+            client.get_service_properties()
         elif conn.service == "Queue":
-            QueueServiceClient.from_connection_string(
-                conn.connection_string
-            ).get_service_properties()
+            client = (
+                QueueServiceClient(account_url=conn.endpoint_url, credential=cred)
+                if cred is not None
+                else QueueServiceClient.from_connection_string(conn.connection_string)
+            )
+            client.get_service_properties()
         elif conn.service == "Table":
-            TableServiceClient.from_connection_string(
-                conn.connection_string
-            ).get_service_properties()
+            client = (
+                TableServiceClient(endpoint=conn.endpoint_url, credential=cred)
+                if cred is not None
+                else TableServiceClient.from_connection_string(conn.connection_string)
+            )
+            client.get_service_properties()
         elif conn.service == "File":
+            # File shares don't currently support OAuth get_service_properties,
+            # so for AAD mode we only DNS/TCP probe (auth=NotApplicable).
+            if cred is not None:
+                return "NotApplicable"
             ShareServiceClient.from_connection_string(
                 conn.connection_string
             ).get_service_properties()
@@ -197,9 +232,11 @@ def validate_storage_connectivity(
 ) -> None:
     """DNS + TCP + auth probe for every storage service endpoint."""
     main_cs = settings.connection_string
-    if not main_cs:
+    if not main_cs and not settings.storage_account_name:
         raise typer.BadParameter(
-            "AzureWebJobsStorage is not set; cannot validate storage connectivity."
+            "AzureWebJobsStorage is not set and no storage account could be "
+            "resolved from AzureWebJobsStorage__accountName / "
+            "AzureWebJobsStorage__*ServiceUri; cannot validate storage connectivity."
         )
     file_cs = settings.file_share_connection_string
 

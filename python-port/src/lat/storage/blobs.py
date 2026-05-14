@@ -15,6 +15,16 @@ from .compression import decompress as decompress_payload
 
 
 def service_client() -> BlobServiceClient:
+    if settings.uses_aad_storage:
+        from ..auth import credential
+
+        endpoint = settings.storage_endpoint("blob")
+        if not endpoint:
+            raise RuntimeError(
+                "Storage account not resolvable; set AzureWebJobsStorage or "
+                "AzureWebJobsStorage__accountName."
+            )
+        return BlobServiceClient(account_url=endpoint, credential=credential())
     conn = settings.connection_string
     if not conn:
         raise RuntimeError("AzureWebJobsStorage is not set")

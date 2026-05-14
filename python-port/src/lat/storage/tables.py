@@ -30,6 +30,16 @@ from .prefix import (
 
 
 def _service_client() -> TableServiceClient:
+    if settings.uses_aad_storage:
+        from ..auth import credential
+
+        endpoint = settings.storage_endpoint("table")
+        if not endpoint:
+            raise RuntimeError(
+                "Storage account not resolvable; set AzureWebJobsStorage or "
+                "AzureWebJobsStorage__accountName."
+            )
+        return TableServiceClient(endpoint=endpoint, credential=credential())
     conn = settings.connection_string
     if not conn:
         raise RuntimeError("AzureWebJobsStorage is not set")
@@ -37,6 +47,18 @@ def _service_client() -> TableServiceClient:
 
 
 def table_client(table_name: str) -> TableClient:
+    if settings.uses_aad_storage:
+        from ..auth import credential
+
+        endpoint = settings.storage_endpoint("table")
+        if not endpoint:
+            raise RuntimeError(
+                "Storage account not resolvable; set AzureWebJobsStorage or "
+                "AzureWebJobsStorage__accountName."
+            )
+        return TableClient(
+            endpoint=endpoint, table_name=table_name, credential=credential()
+        )
     conn = settings.connection_string
     if not conn:
         raise RuntimeError("AzureWebJobsStorage is not set")

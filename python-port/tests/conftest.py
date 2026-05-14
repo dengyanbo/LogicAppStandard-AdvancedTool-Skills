@@ -415,3 +415,17 @@ def lat_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "WEBSITE_OWNER_NAME", "00000000-0000-0000-0000-000000000000+test"
     )
     monkeypatch.setenv("REGION_NAME", "East US")
+
+
+@pytest.fixture()
+def lat_env_aad(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Set env vars for AAD storage mode (no connection string, no key)."""
+    # Explicitly unset the conn-string form
+    monkeypatch.delenv("AzureWebJobsStorage", raising=False)
+    monkeypatch.setenv("AzureWebJobsStorage__accountName", "teststorage")
+    monkeypatch.setenv("WEBSITE_SITE_NAME", "testlogicapp")
+    monkeypatch.setenv("WEBSITE_RESOURCE_GROUP", "test-rg")
+    monkeypatch.setenv(
+        "WEBSITE_OWNER_NAME", "00000000-0000-0000-0000-000000000000+test"
+    )
+    monkeypatch.setenv("REGION_NAME", "East US")
