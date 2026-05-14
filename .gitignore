@@ -363,5 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 
 README.md
+!python-port/README.md
 CHANGELOG.md
 Temp/
