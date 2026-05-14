@@ -188,3 +188,26 @@ def resubmit_trigger_history(workflow: str, trigger: str, run_id: str) -> None:
     _hostruntime_request(
         "POST", url, expected_message=f"resubmit {workflow}/{trigger}/{run_id}"
     )
+
+
+def validate_workflow_definition(workflow: str, definition: dict[str, Any]) -> tuple[bool, str]:
+    """POST definition to the hostruntime validator. Returns (ok, message)."""
+    url = (
+        f"{_hostruntime_base()}/workflows/{workflow}/validate?api-version=2018-11-01"
+    )
+    headers = _bearer_headers(content_type=True)
+    resp = httpx.request(
+        "POST",
+        url,
+        headers=headers,
+        content=json.dumps(definition),
+        timeout=60.0,
+    )
+    if resp.is_success:
+        return True, ""
+    if resp.status_code == 400:
+        return False, resp.text
+    raise RuntimeError(
+        f"Failed to validate workflow {workflow}, status code {resp.status_code}\n"
+        f"Detail message: {resp.text}"
+    )
