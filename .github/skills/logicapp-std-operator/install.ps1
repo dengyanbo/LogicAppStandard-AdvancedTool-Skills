@@ -40,8 +40,10 @@ if (Test-Path $Target) {
     Remove-Item -Recurse -Force $Target
 }
 
-$parent = Split-Path $Target
-if (-not (Test-Path $parent)) {
+# Ensure parent dir exists. New-Item -Force creates intermediate dirs and
+# is a no-op when the dir already exists, so we don't need Split-Path.
+$parent = [System.IO.Path]::GetDirectoryName($Target)
+if ($parent -and -not (Test-Path $parent)) {
     New-Item -ItemType Directory -Path $parent -Force | Out-Null
 }
 

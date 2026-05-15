@@ -37,17 +37,17 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 
 # Step 1: lat.
-$latArgs = @()
-if ($ForceVenv) { $latArgs += "-ForceVenv" }
-if ($Python)    { $latArgs += @("-Python", $Python) }
+$latArgs = @{}
+if ($ForceVenv) { $latArgs.ForceVenv = $true }
+if ($Python)    { $latArgs.Python    = $Python }
 & (Join-Path $scriptDir "install-lat.ps1") @latArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""
 
 # Step 2: skill.
-$skillArgs = @()
-if ($Force) { $skillArgs += "-Force" }
+$skillArgs = @{}
+if ($Force) { $skillArgs.Force = $true }
 & (Join-Path $scriptDir "install-skill.ps1") @skillArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

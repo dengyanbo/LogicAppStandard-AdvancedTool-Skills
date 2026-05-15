@@ -40,9 +40,9 @@ Write-Host "  Repo root:  $repoRoot"
 Write-Host "  Delegating to: $skillBundled"
 Write-Host ""
 
-$args = @()
-if ($Target) { $args += @("-Target", $Target) }
-if ($Force)  { $args += "-Force" }
+$passthrough = @{}
+if ($Target) { $passthrough.Target = $Target }
+if ($Force)  { $passthrough.Force  = $true }
 
-& $skillBundled @args
+& $skillBundled @passthrough
 exit $LASTEXITCODE
