@@ -368,9 +368,9 @@ README.md
 !/README.md
 !python-port/README.md
 !archive/README.md
-!dotnet/README.md
+!archive/dotnet/README.md
 !release/README.md
 !.github/skills/logicapp-std-operator/INSTALL.md
 CHANGELOG.md
-!dotnet/CHANGELOG.md
+!archive/dotnet/CHANGELOG.md
 Temp/
