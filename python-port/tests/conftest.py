@@ -13,6 +13,7 @@ import re
 from typing import Any, Iterable
 
 import pytest
+from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError
 
 
 # ---------------------------------------------------------------------------
@@ -190,12 +191,19 @@ class FakeTableClient:
     def __init__(self, name: str = "") -> None:
         self.name = name
         self._rows: dict[tuple[str, str], dict[str, Any]] = {}
+        # If True, query/transaction calls raise ResourceNotFoundError as if
+        # the table doesn't exist on the storage account. Real Azure behavior:
+        # SDK raises ResourceNotFoundError with ErrorCode 'TableNotFound'.
+        # Used by tests to exercise the graceful-degrade paths in
+        # storage/tables.query_paged() and commands/merge_run_history._merge_table().
+        self.missing: bool = False
         # Test observability
         self.transactions: list[list[tuple[str, dict[str, Any]]]] = []
         self.create_calls: list[dict[str, Any]] = []
         self.upsert_calls: list[dict[str, Any]] = []
         self.update_calls: list[dict[str, Any]] = []
         self.delete_calls: list[tuple[str, str]] = []
+        self.create_table_calls: int = 0
 
     # Seeding helper for tests --------------------------------------------
 
@@ -250,6 +258,10 @@ class FakeTableClient:
         results_per_page: int | None = None,
         **_: Any,
     ) -> _ItemPaged:
+        if self.missing:
+            err = ResourceNotFoundError(message="The table specified does not exist.")
+            err.error_code = "TableNotFound"
+            raise err
         out: list[dict[str, Any]] = []
         for ent in self._rows.values():
             if not _eval_filter(query_filter or "", ent):
@@ -266,11 +278,27 @@ class FakeTableClient:
     def list_entities(self, **_: Any) -> _ItemPaged:
         return self.query_entities(None)
 
+    # Table-level lifecycle ----------------------------------------------
+
+    def create_table(self) -> None:
+        """Flip `missing` to False (no-op on an existing table)."""
+        self.create_table_calls += 1
+        if self.missing:
+            self.missing = False
+        else:
+            err = ResourceExistsError(message="The table already exists.")
+            err.error_code = "TableAlreadyExists"
+            raise err
+
     # Transaction ---------------------------------------------------------
 
     def submit_transaction(
         self, operations: Iterable[tuple[Any, dict[str, Any]]]
     ) -> list[Any]:
+        if self.missing:
+            err = ResourceNotFoundError(message="The table specified does not exist.")
+            err.error_code = "TableNotFound"
+            raise err
         ops = [(str(op), dict(ent)) for op, ent in operations]
         self.transactions.append(ops)
         for op_raw, entity in ops:

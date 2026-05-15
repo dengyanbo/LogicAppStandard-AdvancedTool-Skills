@@ -22,6 +22,7 @@ from collections import defaultdict
 from typing import Any
 
 import typer
+from azure.core.exceptions import HttpResponseError, ResourceExistsError, ResourceNotFoundError
 
 from ..settings import settings
 from ..storage import tables
@@ -99,6 +100,20 @@ def _merge_table(
         return 0
 
     target_client = tables.table_client(target_name)
+    # Auto-create the target table if it doesn't exist yet. This matters
+    # when the target workflow has never been triggered: the runtime only
+    # creates per-flow tables on first run, so a fresh-target merge would
+    # otherwise hit TableNotFound on the first submit_transaction call.
+    try:
+        target_client.create_table()
+    except (ResourceExistsError, HttpResponseError) as exc:
+        # ResourceExistsError = expected, table already there.
+        # HttpResponseError with 409 also = exists; other 4xx/5xx = something
+        # else, but we don't want a single existence check to block the merge
+        # (the subsequent submit_transaction will surface a real error).
+        if isinstance(exc, HttpResponseError) and getattr(exc, "status_code", None) not in (None, 409):
+            raise
+
     # Group by new partition key; submit in 100-entity batches per partition.
     batches: defaultdict[str, list[tuple[str, dict]]] = defaultdict(list)
     written = 0

@@ -297,3 +297,50 @@ def test_cancel_runs_requires_confirmation_without_yes(
         app, ["runs", "cancel-runs", "-wf", "wfOne"], input="n\n"
     )
     assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# Graceful degradation when per-day / per-flow tables don't exist on the
+# storage account. Reproduces the real-Azure bug where running e.g.
+# `retrieve-failures-by-date` against a date with no traffic raised a raw
+# ResourceNotFoundError ("TableNotFound") stack trace instead of the
+# friendly "no records" message. Fix is in storage/tables.query_paged.
+# ---------------------------------------------------------------------------
+
+
+def test_retrieve_failures_by_date_missing_action_table_is_graceful(
+    tmp_path: Path, lat_env, fake_tables
+) -> None:
+    fake_tables.add_table(main_definition_table(LA), _flow_lookup())
+    missing = fake_tables.get_table_client(per_day_action_table(LA, FLOW_ID, "20240515"))
+    missing.missing = True
+    result = runner.invoke(
+        app,
+        [
+            "runs", "retrieve-failures-by-date",
+            "-wf", "wfOne", "-d", "20240515", "-o", str(tmp_path),
+        ],
+    )
+    # Friendly user-facing exit (no stack trace).
+    assert result.exit_code != 0
+    assert "TableNotFound" not in result.output
+    assert "Traceback" not in result.output
+    assert "No failure actions" in result.output
+
+
+def test_search_in_history_missing_action_table_is_graceful(
+    tmp_path: Path, lat_env, fake_tables
+) -> None:
+    fake_tables.add_table(main_definition_table(LA), _flow_lookup())
+    missing = fake_tables.get_table_client(per_day_action_table(LA, FLOW_ID, "20240515"))
+    missing.missing = True
+    result = runner.invoke(
+        app,
+        [
+            "runs", "search-in-history",
+            "-wf", "wfOne", "-d", "20240515",
+            "-k", "anything", "-o", str(tmp_path),
+        ],
+    )
+    assert "TableNotFound" not in result.output
+    assert "Traceback" not in result.output

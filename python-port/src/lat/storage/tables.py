@@ -17,6 +17,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
+from azure.core.exceptions import ResourceNotFoundError
 from azure.data.tables import TableClient, TableServiceClient, TransactionOperation
 
 from ..settings import settings
@@ -79,15 +80,24 @@ def query_paged(
     """Yield entities lazily; memory bounded by `page_size` per page.
 
     Mirrors Shared/PageableTableQuery.cs.
+
+    If the storage table does not exist (e.g. a workflow that's never
+    been triggered has no per-day action table), this yields nothing
+    rather than propagating the SDK's ResourceNotFoundError. Callers
+    therefore see an empty iterator and can fall through to their
+    own "no records found" message instead of an unfriendly stack trace.
     """
     client = table_client(table_name)
-    pages = client.query_entities(
-        query_filter=query_filter or "",
-        select=select,
-        results_per_page=page_size,
-    ).by_page()
-    for page in pages:
-        yield from page
+    try:
+        pages = client.query_entities(
+            query_filter=query_filter or "",
+            select=select,
+            results_per_page=page_size,
+        ).by_page()
+        for page in pages:
+            yield from page
+    except ResourceNotFoundError:
+        return
 
 
 # ---------------------------------------------------------------------------

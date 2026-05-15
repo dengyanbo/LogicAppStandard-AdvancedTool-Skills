@@ -183,3 +183,51 @@ def test_merge_run_history_same_id_errors(lat_env, fake_tables) -> None:
     )
     assert result.exit_code != 0
     assert "same" in result.output.lower()
+
+
+def test_merge_run_history_creates_missing_target_tables(lat_env, fake_tables) -> None:
+    """Repro of the real-Azure bug: when the target workflow has never been
+    triggered, its per-flow runs/flows/histories tables don't exist yet.
+    `_merge_table` must auto-create them rather than crash with TableNotFound
+    on the first submit_transaction call.
+    """
+    main_table_name = main_definition_table(LA)
+    fake_tables.add_table(
+        main_table_name,
+        _flow_lookup("sourceWF", SOURCE_ID),
+        _main_row("v1", "sourceWF", SOURCE_ID),
+        _flow_lookup("targetWF", TARGET_ID),
+        _main_row("t1", "targetWF", TARGET_ID),
+    )
+    la_pref = logic_app_prefix(LA)
+    src_pref = f"flow{la_pref}{workflow_prefix(SOURCE_ID)}"
+    tgt_pref = f"flow{la_pref}{workflow_prefix(TARGET_ID)}"
+
+    # Source runs table has data
+    fake_tables.add_table(
+        f"{src_pref}runs",
+        _runs_row("r1", SOURCE_ID),
+    )
+    # Target runs table is MISSING on the storage account (never triggered)
+    tgt_runs = fake_tables.get_table_client(f"{tgt_pref}runs")
+    tgt_runs.missing = True
+
+    result = runner.invoke(
+        app,
+        [
+            "workflow", "merge-run-history",
+            "-s", "sourceWF", "-t", "targetWF",
+            "--start", "20240101", "--end", "20240601",
+            "--yes",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "TableNotFound" not in result.output
+    assert "Traceback" not in result.output
+    # Target table was auto-created (missing flag flipped) and got the row.
+    assert tgt_runs.missing is False
+    assert tgt_runs.create_table_calls == 1
+    target_runs_keys = [r["RowKey"] for r in tgt_runs.rows.values()]
+    assert len(target_runs_keys) == 1
+    assert TARGET_ID.upper() in target_runs_keys[0]
