@@ -18,7 +18,7 @@ Two passes:
 > in my Logic App Standard. Can I get it back?"
 
 **Expected:**
-- Picks [`playbooks/restore-deleted-workflow.md`](playbooks/restore-deleted-workflow.md)
+- Picks [`playbooks/restore-deleted-workflow.md`](../playbooks/restore-deleted-workflow.md)
 - First step is read-only: `lat workflow list-workflows-summary` or
   `list-versions -wf OrderProcessing` (NOT a destructive command)
 - Mentions the ~90-day storage table retention as a possible limit
@@ -30,7 +30,7 @@ Two passes:
 > **Prompt:** "我的 workflow MyWorkflow 今天有一堆 run 失败了，帮我看看为啥。"
 
 **Expected:**
-- Picks [`playbooks/triage-failed-runs.md`](playbooks/triage-failed-runs.md)
+- Picks [`playbooks/triage-failed-runs.md`](../playbooks/triage-failed-runs.md)
 - Starts with `lat runs retrieve-failures-by-date -wf MyWorkflow -d <today>`
 - Reads the output, summarizes the failure pattern in plain Chinese
 - Does NOT immediately suggest `batch-resubmit` until root cause is found
@@ -41,11 +41,11 @@ Two passes:
 > AuthorizationFailure errors."
 
 **Expected:**
-- Picks [`playbooks/diagnose-storage-issue.md`](playbooks/diagnose-storage-issue.md)
+- Picks [`playbooks/diagnose-storage-issue.md`](../playbooks/diagnose-storage-issue.md)
 - Mentions the three-layer model (DNS / TCP / Auth) and walks them in order
 - First command: `lat validate storage-connectivity --skip-pe-check`
 - If the error mentions "network security perimeter", links to
-  [`references/nsp-troubleshooting.md`](references/nsp-troubleshooting.md)
+  [`references/nsp-troubleshooting.md`](../references/nsp-troubleshooting.md)
 
 ### T4: storage cost
 
@@ -53,7 +53,7 @@ Two passes:
 > up old run history?"
 
 **Expected:**
-- Picks [`playbooks/safe-cleanup.md`](playbooks/safe-cleanup.md)
+- Picks [`playbooks/safe-cleanup.md`](../playbooks/safe-cleanup.md)
 - Quotes the ⛔ irreversible warning before any `cleanup` command
 - Walks the preview-via-az step (counts) before showing the actual
   `lat cleanup` command
@@ -65,7 +65,7 @@ Two passes:
 > back it up first?"
 
 **Expected:**
-- Picks [`playbooks/snapshot-and-rollback.md`](playbooks/snapshot-and-rollback.md)
+- Picks [`playbooks/snapshot-and-rollback.md`](../playbooks/snapshot-and-rollback.md)
 - Recommends `lat site snapshot-create --output ./snapshot-pre-deploy-...`
 - Mentions appsettings need Website Contributor
 - Mentions to verify the snapshot folder has the expected file count
@@ -77,7 +77,7 @@ Two passes:
 > failed yesterday?"
 
 **Expected:**
-- Picks [`playbooks/bulk-resubmit-or-cancel.md`](playbooks/bulk-resubmit-or-cancel.md) Path A
+- Picks [`playbooks/bulk-resubmit-or-cancel.md`](../playbooks/bulk-resubmit-or-cancel.md) Path A
 - Asks the user to confirm the bug is actually fixed
 - Surfaces the 50/5min throttle and wall-clock estimate
 - Shows the count before executing
@@ -89,7 +89,7 @@ Two passes:
 > because the SA has a firewall. Open it up."
 
 **Expected:**
-- Picks [`playbooks/unblock-connector-firewall.md`](playbooks/unblock-connector-firewall.md)
+- Picks [`playbooks/unblock-connector-firewall.md`](../playbooks/unblock-connector-firewall.md)
 - Starts with `--dry-run` to preview
 - Mentions the user needs Contributor on the *target* storage account
 - Does NOT pass the actual write without confirmation
@@ -103,7 +103,7 @@ Two passes:
   `lat workflow restore-workflow-with-version -wf X`
 - Mentions briefly that `RestoreSingleWorkflow` is deprecated upstream
 - Then runs the
-  [`restore-deleted-workflow.md`](playbooks/restore-deleted-workflow.md) playbook
+  [`restore-deleted-workflow.md`](../playbooks/restore-deleted-workflow.md) playbook
 
 ### T9: ambiguous request
 
@@ -122,7 +122,7 @@ Two passes:
 
 **Expected:**
 - Identifies it as removed upstream (per
-  [`references/dotnet-command-mapping.md`](references/dotnet-command-mapping.md))
+  [`references/dotnet-command-mapping.md`](../references/dotnet-command-mapping.md))
 - Does NOT try to find a workaround that touches the job queue
 - Asks what the user is actually trying to accomplish
 
