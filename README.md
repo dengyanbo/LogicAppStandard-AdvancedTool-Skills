@@ -81,7 +81,7 @@ flowchart LR
 ### Repository layout
 
 ```text
-Logic-App-STD-Advanced-Tools/
+LogicAppStandard-AdvancedTool-Skills/
 ├── .github/skills/logicapp-std-operator/   # 🤖 Copilot CLI agent skill (active)
 │   ├── SKILL.md                            #   YAML frontmatter + skill prompt
 │   ├── playbooks/                          #   9 playbooks (restore / triage / ...)
@@ -203,15 +203,15 @@ For complete usage with option-level docs, see
 
 ```powershell
 # Windows
-git clone https://github.com/Drac-Zhang/Logic-App-STD-Advanced-Tools.git
-cd Logic-App-STD-Advanced-Tools
+git clone https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills.git
+cd LogicAppStandard-AdvancedTool-Skills
 .\release\install-all.ps1
 ```
 
 ```bash
 # Linux / Mac
-git clone https://github.com/Drac-Zhang/Logic-App-STD-Advanced-Tools.git
-cd Logic-App-STD-Advanced-Tools
+git clone https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills.git
+cd LogicAppStandard-AdvancedTool-Skills
 ./release/install-all.sh
 ```
 
@@ -327,7 +327,7 @@ Skill 会自动挑选合适的 playbook、对不可逆操作要求二次确认�
 ### 仓库目录
 
 ```text
-Logic-App-STD-Advanced-Tools/
+LogicAppStandard-AdvancedTool-Skills/
 ├── .github/skills/logicapp-std-operator/   # 🤖 Copilot CLI Agent Skill（活跃）
 ├── python-port/                            # 🐍 lat CLI（唯一活跃实现，299 单元测试）
 ├── release/                                # 📦 一键安装脚本（PS + bash）
@@ -424,15 +424,15 @@ Logic-App-STD-Advanced-Tools/
 
 ```powershell
 # Windows
-git clone https://github.com/Drac-Zhang/Logic-App-STD-Advanced-Tools.git
-cd Logic-App-STD-Advanced-Tools
+git clone https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills.git
+cd LogicAppStandard-AdvancedTool-Skills
 .\release\install-all.ps1
 ```
 
 ```bash
 # Linux / Mac
-git clone https://github.com/Drac-Zhang/Logic-App-STD-Advanced-Tools.git
-cd Logic-App-STD-Advanced-Tools
+git clone https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills.git
+cd LogicAppStandard-AdvancedTool-Skills
 ./release/install-all.sh
 ```
 

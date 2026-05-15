@@ -10,8 +10,8 @@ The CLI walks up from your cwd looking for `.github/skills/` and auto-loads
 every `SKILL.md` it finds.
 
 ```bash
-git clone https://github.com/<owner>/Logic-App-STD-Advanced-Tools.git
-cd Logic-App-STD-Advanced-Tools           # or any subdirectory
+git clone https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills.git
+cd LogicAppStandard-AdvancedTool-Skills           # or any subdirectory
 copilot
 # verify with: /env
 ```

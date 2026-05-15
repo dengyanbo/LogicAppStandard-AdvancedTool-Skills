@@ -48,7 +48,7 @@ lat = "lat.cli:app"
 
 [project.urls]
 "Source (canonical)" = "https://github.com/microsoft/Logic-App-STD-Advanced-Tools"
-"Source (this port)" = "TODO"
+"Source (this port)" = "https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lat"]

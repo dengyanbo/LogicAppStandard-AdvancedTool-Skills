@@ -275,8 +275,8 @@ LogicAppAdvancedTool/
 ## Building from source
 
 ```cmd
-git clone https://github.com/Drac-Zhang/Logic-App-STD-Advanced-Tools.git
-cd Logic-App-STD-Advanced-Tools
+git clone https://github.com/dengyanbo/LogicAppStandard-AdvancedTool-Skills.git
+cd LogicAppStandard-AdvancedTool-Skills\archive\dotnet
 dotnet build -c Release
 dotnet publish -c Release -o ./publish
 ```
